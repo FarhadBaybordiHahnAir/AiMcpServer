@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Knowledge — MCP Server</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Project knowledge</h1>
+      <p>Import reference documents and retrieve cited passages through your MCP server.</p>
+      <p class="notice">Local development only. No authentication. Do not upload secrets. Documents are reference data, not trusted instructions.</p>
+    </header>
+    <section aria-labelledby="project-heading">
+      <h2 id="project-heading">1. Choose a project</h2>
+      <label for="project">Project label (case-sensitive)</label>
+      <input id="project" maxlength="200" placeholder="my-project" autocomplete="off" required>
+      <p>Use this exact label when agents call <code>search_project_documents</code>.</p>
+    </section>
+    <section aria-labelledby="import-heading">
+      <h2 id="import-heading">2. Add documents</h2>
+      <p>Ollama must be running with an embedding model: <code>ollama pull nomic-embed-text</code> (default). Indexing may take several minutes.</p>
+      <div class="columns">
+        <form id="upload-form">
+          <label for="file">PDF, UTF-8 text, or Markdown (maximum 10 MiB)</label>
+          <input id="file" type="file" accept=".pdf,.txt,.md" required>
+          <button type="submit">Upload and index</button>
+          <p>PDFs need selectable text. Scanned pages require OCR first.</p>
+        </form>
+        <form id="url-form">
+          <label for="url">Public web URL</label>
+          <input id="url" type="url" maxlength="2000" placeholder="https://example.com/documentation" required>
+          <button type="submit">Import URL</button>
+          <p>HTML, text, or PDF on standard HTTP/HTTPS ports. Private networks and JavaScript-rendered pages are not supported.</p>
+        </form>
+      </div>
+    </section>
+    <p id="status" role="status" aria-live="polite">Choose a project to get started.</p>
+    <section aria-labelledby="documents-heading">
+      <div class="section-heading">
+        <h2 id="documents-heading">Indexed documents</h2>
+        <button id="refresh" type="button">Refresh list</button>
+      </div>
+      <div id="documents"><p>No project loaded.</p></div>
+    </section>
+    <section aria-labelledby="search-heading">
+      <h2 id="search-heading">3. Retrieve passages</h2>
+      <form id="search-form">
+        <label for="query">Question or search request</label>
+        <textarea id="query" rows="3" maxlength="2000" required placeholder="How is this project's authentication configured?"></textarea>
+        <div class="columns">
+          <div><label for="limit">Maximum passages</label><input id="limit" type="number" value="5" min="1" max="20" required></div>
+          <div><label for="score">Minimum similarity (-1 to 1)</label><input id="score" type="number" value="0" min="-1" max="1" step="0.01" required></div>
+        </div>
+        <button type="submit">Search project documents</button>
+      </form>
+      <p>This retrieves source text, not an AI-generated answer. Similarity scores are not confidence probabilities.</p>
+      <div id="results" aria-live="polite"></div>
+    </section>
+  </main>
+</body>
+</html>

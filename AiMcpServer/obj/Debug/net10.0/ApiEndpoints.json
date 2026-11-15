@@ -1,0 +1,111 @@
+[
+  {
+    "ContainingType": "AiMcpServer.Rag.RagEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMapRagEndpoints\u003Eb__0_1",
+    "RelativePath": "api/rag/documents",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AiMcpServer.Rag.RagEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMapRagEndpoints\u003Eb__0_2",
+    "RelativePath": "api/rag/documents/{documentId}",
+    "HttpMethod": "DELETE",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "documentId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "projectId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AiMcpServer.Rag.RagEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMapRagEndpoints\u003Eb__0_5",
+    "RelativePath": "api/rag/search",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "input",
+        "Type": "AiMcpServer.Rag.DocumentSearchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AiMcpServer.Rag.RagEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMapRagEndpoints\u003Eb__0_3",
+    "RelativePath": "api/rag/upload",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "AiMcpServer.Rag.RagEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMapRagEndpoints\u003Eb__0_4",
+    "RelativePath": "api/rag/url",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "input",
+        "Type": "AiMcpServer.Rag.ImportUrlRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  }
+]

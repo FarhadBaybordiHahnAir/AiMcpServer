@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AiMcpServer.Tests/AiMcpServer.Tests.csproj" />
+  <Project Path="AiMcpServer/AiMcpServer.csproj" />
+</Solution>

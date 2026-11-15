@@ -1,0 +1,6 @@
+wwwroot\app.js
+wwwroot\index.html
+wwwroot\styles.css
+C:\repos\AiMcpServer\AiMcpServer\wwwroot\app.js
+C:\repos\AiMcpServer\AiMcpServer\wwwroot\index.html
+C:\repos\AiMcpServer\AiMcpServer\wwwroot\styles.css
