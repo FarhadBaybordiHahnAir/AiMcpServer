@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+
+# .NET build outputs
+**/bin/
+**/obj/
+**/TestResults/
+artifacts/
+
+# Temporary files and local data
+*.tmp
+*.temp
+*.log
+*.bak
+*.db
+*.db-shm
+*.db-wal
+
+# OS files
+.DS_Store
+Thumbs.db

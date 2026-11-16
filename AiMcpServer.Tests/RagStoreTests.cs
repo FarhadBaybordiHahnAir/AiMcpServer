@@ -42,6 +42,37 @@ public sealed class RagStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateProjectAddsAnEmptyProjectAndRejectsDuplicateNames()
+    {
+        Assert.True(await store.CreateProjectAsync("empty-project"));
+        Assert.False(await store.CreateProjectAsync("empty-project"));
+
+        var project = Assert.Single(await store.ListProjectsAsync());
+
+        Assert.Equal("empty-project", project.ProjectId);
+        Assert.Equal(0, project.DocumentCount);
+    }
+
+    [Fact]
+    public async Task ProjectListSummarizesDocumentsAndLatestImport()
+    {
+        var latest = DateTimeOffset.UtcNow;
+        var older = latest.AddMinutes(-1);
+        await store.SaveAsync(Document("doc-1") with { CreatedAt = older }, [new(new TextChunk(0, null, "First"), [1, 0])]);
+        await store.SaveAsync(Document("doc-2") with { CreatedAt = latest }, [new(new TextChunk(0, null, "Second"), [1, 0])]);
+        await store.SaveAsync(Document("other-project-doc", "another-project"), [new(new TextChunk(0, null, "Other"), [1, 0])]);
+
+        var listed = await store.ListProjectsAsync();
+
+        Assert.Equal(2, listed.Count);
+        Assert.Equal("another-project", listed[0].ProjectId);
+        Assert.Equal(1, listed[0].DocumentCount);
+        Assert.Equal("project", listed[1].ProjectId);
+        Assert.Equal(2, listed[1].DocumentCount);
+        Assert.Equal(latest, listed[1].UpdatedAt);
+    }
+
+    [Fact]
     public async Task SearchFiltersProjectBeforeRankingAndAppliesLimits()
     {
         await store.SaveAsync(Document("best"), [new(new TextChunk(0, null, "Best"), [1, 0])]);
@@ -73,11 +104,46 @@ public sealed class RagStoreTests : IAsyncLifetime
         Assert.False(await store.DeleteAsync("wrong-project", "doc"));
         Assert.True(await store.DeleteAsync("project", "doc"));
         Assert.Empty(await store.ListAsync("project"));
+        var project = Assert.Single(await store.ListProjectsAsync());
+        Assert.Equal("project", project.ProjectId);
+        Assert.Equal(0, project.DocumentCount);
         using var connection = new SqliteConnection($"Data Source={Path.Combine(directory, "rag.db")};Pooling=False");
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM RagChunks;";
         Assert.Equal(0L, await command.ExecuteScalarAsync());
+    }
+
+    [Fact]
+    public async Task DeleteProjectRemovesOnlyItsDocumentsAndChunks()
+    {
+        await store.SaveAsync(Document("first", "target"), [new(new TextChunk(0, null, "First"), [1, 0])]);
+        await store.SaveAsync(Document("second", "target"), [new(new TextChunk(0, null, "Second"), [1, 0])]);
+        await store.SaveAsync(Document("other", "other"), [new(new TextChunk(0, null, "Other"), [1, 0])]);
+
+        Assert.False(await store.DeleteProjectAsync("TARGET"));
+        Assert.True(await store.DeleteProjectAsync("target"));
+        Assert.False(await store.DeleteProjectAsync("target"));
+        Assert.Empty(await store.ListAsync("target"));
+        Assert.Equal("other", Assert.Single(await store.ListProjectsAsync()).ProjectId);
+        Assert.Single(await store.SearchAsync("other", "test-model", [1, 0], 5, 0));
+        var reopened = new RagStore(Path.Combine(directory, "rag.db"));
+        await reopened.InitializeAsync();
+        Assert.Equal("other", Assert.Single(await reopened.ListProjectsAsync()).ProjectId);
+        using var connection = new SqliteConnection($"Data Source={Path.Combine(directory, "rag.db")};Pooling=False");
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM RagChunks;";
+        Assert.Equal(1L, await command.ExecuteScalarAsync());
+    }
+
+    [Fact]
+    public async Task EmptyProjectsCanBeDeletedAndInvalidNamesAreRejected()
+    {
+        await store.CreateProjectAsync("empty");
+        Assert.True(await store.DeleteProjectAsync("empty"));
+        Assert.Empty(await store.ListProjectsAsync());
+        await Assert.ThrowsAsync<RagException>(() => store.DeleteProjectAsync(" "));
     }
 
     [Fact]

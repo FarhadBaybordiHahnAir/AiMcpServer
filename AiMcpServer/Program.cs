@@ -7,9 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(5050);
-    options.Limits.MaxRequestBodySize = RagLimits.MaxFileBytes + 65536;
+    options.Limits.MaxRequestBodySize = RagLimits.MaxUploadRequestBytes;
 });
-builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = RagLimits.MaxFileBytes);
+builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = RagLimits.MaxUploadRequestBytes);
 
 var databasePath = builder.Configuration["Memory:DatabasePath"];
 if (string.IsNullOrWhiteSpace(databasePath))

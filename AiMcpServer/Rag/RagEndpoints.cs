@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 
 namespace AiMcpServer.Rag;
 
+public sealed record CreateProjectRequest(string ProjectId);
 public sealed record ImportUrlRequest(string ProjectId, string Url);
 public sealed record DocumentSearchRequest(string ProjectId, string Query, int Limit = 5, double MinimumScore = 0);
 
@@ -37,6 +38,22 @@ public static class RagEndpoints
             }
         });
 
+        group.MapGet("/projects", async (RagStore store, CancellationToken cancellationToken) =>
+            Results.Ok(await store.ListProjectsAsync(cancellationToken)));
+
+        group.MapPost("/projects", async (CreateProjectRequest input, RagStore store, CancellationToken cancellationToken) =>
+        {
+            var projectId = RagLimits.Required(input.ProjectId, nameof(input.ProjectId));
+            if (!await store.CreateProjectAsync(projectId, cancellationToken))
+            {
+                throw new RagException($"Project '{projectId}' already exists.", 409);
+            }
+            return Results.Created("/api/rag/projects", new { projectId });
+        });
+
+        group.MapDelete("/projects", async (string projectId, RagStore store, CancellationToken cancellationToken) =>
+            await store.DeleteProjectAsync(projectId, cancellationToken) ? Results.NoContent() : Results.NotFound());
+
         group.MapGet("/documents", async (string projectId, RagStore store, CancellationToken cancellationToken) =>
             Results.Ok(await store.ListAsync(projectId, cancellationToken)));
 
@@ -49,13 +66,32 @@ public static class RagEndpoints
             if (!request.HasFormContentType) throw new RagException("Use a multipart/form-data upload.");
             var form = await request.ReadFormAsync(cancellationToken);
             var project = RagLimits.Required(form["projectId"].ToString(), "projectId");
-            if (form.Files.Count != 1 || form.Files[0].Name != "file") throw new RagException("Upload exactly one file named 'file'.");
-            var file = form.Files[0];
-            if (file.Length is 0 or > RagLimits.MaxFileBytes) throw new RagException("Upload a non-empty file of at most 10 MiB.", 413);
-            await using var stream = file.OpenReadStream();
-            var bytes = await DocumentExtractor.ReadBoundedAsync(stream, cancellationToken);
-            var document = await service.ImportFileAsync(project, file.FileName, bytes, cancellationToken);
-            return Results.Ok(document);
+            var files = form.Files;
+            if (files.Count is < 1 or > RagLimits.MaxUploadFiles || files.Any(file => file.Name != "file"))
+            {
+                throw new RagException($"Upload 1-{RagLimits.MaxUploadFiles} files named 'file'.");
+            }
+            foreach (var file in files)
+            {
+                if (file.Length is 0 or > RagLimits.MaxFileBytes)
+                {
+                    throw new RagException("Each upload must be non-empty and at most 10 MiB.", 413);
+                }
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (extension is not (".pdf" or ".txt" or ".md"))
+                {
+                    throw new RagException("Upload .pdf, .txt, or .md files.");
+                }
+            }
+
+            var documents = new List<RagDocument>(files.Count);
+            foreach (var file in files)
+            {
+                await using var stream = file.OpenReadStream();
+                var bytes = await DocumentExtractor.ReadBoundedAsync(stream, cancellationToken);
+                documents.Add(await service.ImportFileAsync(project, file.FileName, bytes, cancellationToken));
+            }
+            return Results.Ok(documents);
         });
 
         group.MapPost("/url", async (ImportUrlRequest input, RagService service, CancellationToken cancellationToken) =>

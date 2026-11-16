@@ -1,6 +1,20 @@
 :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.5; }
 body { margin: 0; background: light-dark(#f4f6fa, #141922); color: light-dark(#182333, #e0e7f1); }
-main { max-width: 1050px; margin: auto; padding: 2rem 1rem 4rem; }
+main { min-width: 0; padding: 2rem 0 4rem; }
+.knowledge-page, .projects-page { max-width: 1050px; margin: auto; padding: 2rem 1rem 4rem; }
+.page-navigation { display: flex; gap: 1rem; margin-bottom: 1rem; }
+.page-navigation [aria-current="page"] { font-weight: 700; }
+.entry-page { max-width: 600px; margin: auto; padding: 2rem 1rem; }
+#new-project-form h2 { margin-top: 0; }
+#new-project-form button { margin-top: .8rem; }
+#upload-destination { font-weight: 600; overflow-wrap: anywhere; }
+#projects table { width: 100%; border-collapse: collapse; text-align: left; }
+#projects th, #projects td { padding: .5rem .25rem; border-bottom: 1px solid #8490a2; overflow-wrap: anywhere; }
+#projects th { font-size: .85rem; }
+.button-link { display: inline-block; padding: .6rem 1rem; border-radius: .3rem; background: #245cbe; color: white; text-decoration: none; }
+.project-row { cursor: pointer; }
+.project-row:hover { background: light-dark(#eaf1ff, #24334d); }
+.danger { background: #a52b2b; }
 header { margin-bottom: 2rem; }
 h1 { margin-bottom: .3rem; }
 h2 { font-size: 1.25rem; }

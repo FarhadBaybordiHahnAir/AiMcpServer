@@ -15,6 +15,7 @@ public sealed record TextChunk(int Index, int? Page, string Text);
 public sealed record EmbeddedChunk(TextChunk Chunk, float[] Vector);
 public sealed record RetrievedPassage(string Citation, string DocumentId, string Title, string Source,
     int ChunkIndex, int? Page, string Text, double Score);
+public sealed record RagProject(string ProjectId, int DocumentCount, DateTimeOffset UpdatedAt);
 
 public sealed class RagException(string message, int statusCode = 400) : Exception(message)
 {
@@ -24,6 +25,8 @@ public sealed class RagException(string message, int statusCode = 400) : Excepti
 public static class RagLimits
 {
     public const int MaxFileBytes = 10 * 1024 * 1024;
+    public const int MaxUploadFiles = 10;
+    public const long MaxUploadRequestBytes = (long)MaxFileBytes * MaxUploadFiles + 1024 * 1024;
     public const int MaxTextCharacters = 500_000;
     public const int MaxDocumentChunks = 1000;
     public const int MaxProjectChunks = 10_000;

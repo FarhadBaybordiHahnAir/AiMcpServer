@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Project Knowledge — MCP Server</title>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/api.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <main>
+    <main class="knowledge-page">
+    <nav class="page-navigation" aria-label="Project navigation">
+      <a href="/projects.html">Projects</a>
+    </nav>
     <header>
       <h1>Project knowledge</h1>
       <p>Import reference documents and retrieve cited passages through your MCP server.</p>
@@ -16,17 +20,18 @@
     </header>
     <section aria-labelledby="project-heading">
       <h2 id="project-heading">1. Choose a project</h2>
-      <label for="project">Project label (case-sensitive)</label>
-      <input id="project" maxlength="200" placeholder="my-project" autocomplete="off" required>
-      <p>Use this exact label when agents call <code>search_project_documents</code>.</p>
+      <label for="project">Selected project (case-sensitive)</label>
+      <input id="project" maxlength="200" placeholder="Select a project" readonly required>
+      <p>Use this exact label when agents call <code>search_project_documents</code>. Choose another project on the <a href="/projects.html">Projects page</a>.</p>
     </section>
     <section aria-labelledby="import-heading">
       <h2 id="import-heading">2. Add documents</h2>
-      <p>Ollama must be running with an embedding model: <code>ollama pull nomic-embed-text</code> (default). Indexing may take several minutes.</p>
+      <p id="upload-destination" aria-live="polite">Select a project from the table before uploading documents.</p>
+      <p>Uploads and URLs are added to the selected project. Select an existing project to add more documents. Ollama must be running with an embedding model: <code>ollama pull nomic-embed-text</code> (default). Indexing may take several minutes.</p>
       <div class="columns">
         <form id="upload-form">
-          <label for="file">PDF, UTF-8 text, or Markdown (maximum 10 MiB)</label>
-          <input id="file" type="file" accept=".pdf,.txt,.md" required>
+          <label for="file">PDF, UTF-8 text, or Markdown (up to 10 files, 10 MiB each)</label>
+          <input id="file" type="file" accept=".pdf,.txt,.md" multiple required>
           <button type="submit">Upload and index</button>
           <p>PDFs need selectable text. Scanned pages require OCR first.</p>
         </form>
@@ -60,6 +65,6 @@
       <p>This retrieves source text, not an AI-generated answer. Similarity scores are not confidence probabilities.</p>
       <div id="results" aria-live="polite"></div>
     </section>
-  </main>
+    </main>
 </body>
 </html>

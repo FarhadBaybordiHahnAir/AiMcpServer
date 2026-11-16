@@ -35,6 +35,23 @@ Add this to the solution's `.mcp.json` (Visual Studio) or `.vscode/mcp.json`
 
 Other clients should select Streamable HTTP with the same endpoint URL.
 
+## Project documents UI
+
+Open `http://localhost:5050/projects.html` for the separate projects table
+(the root URL redirects there when no project is selected). Click **New project**
+above the table to open `http://localhost:5050/new-project.html`.
+Saving opens **Project knowledge** with that project selected for document
+uploads. Empty projects are saved and remain available after
+restarting the server.
+
+For an existing project, click its table row to open **Project knowledge**, where
+you can add documents or delete individual documents. Each row also has a
+**Delete project** button: confirmation permanently removes that RAG project,
+all its documents, and indexed passages (not task memory). The upload
+area shows the selected destination. Upload up to 10 PDF, UTF-8 text, or Markdown
+files (10 MiB each), or import a public URL. Additional imports append documents
+without removing existing ones. Ollama must be running for document indexing.
+
 ## Memory tools
 
 | Tool | Required arguments | Optional arguments |

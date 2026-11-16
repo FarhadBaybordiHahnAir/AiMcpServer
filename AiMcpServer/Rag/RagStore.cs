@@ -33,6 +33,11 @@ public sealed class RagStore
                 Dimensions INTEGER NOT NULL, ChunkCount INTEGER NOT NULL, CreatedAt TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS IX_RagDocuments_Project ON RagDocuments(ProjectId);
+            CREATE TABLE IF NOT EXISTS RagProjects (
+                ProjectId TEXT PRIMARY KEY, CreatedAt TEXT NOT NULL
+            );
+            INSERT OR IGNORE INTO RagProjects (ProjectId, CreatedAt)
+                SELECT ProjectId, MIN(CreatedAt) FROM RagDocuments GROUP BY ProjectId;
             CREATE TABLE IF NOT EXISTS RagChunks (
                 DocumentId TEXT NOT NULL REFERENCES RagDocuments(Id) ON DELETE CASCADE,
                 ChunkIndex INTEGER NOT NULL, Page INTEGER, Content TEXT NOT NULL, Vector BLOB NOT NULL,
@@ -56,6 +61,13 @@ public sealed class RagStore
         }
         await using var connection = await OpenAsync(cancellationToken);
         using var transaction = connection.BeginTransaction();
+        using var ensureProject = connection.CreateCommand();
+        ensureProject.Transaction = transaction;
+        ensureProject.CommandText = "INSERT OR IGNORE INTO RagProjects (ProjectId, CreatedAt) VALUES ($project, $created);";
+        ensureProject.Parameters.AddWithValue("$project", document.ProjectId);
+        ensureProject.Parameters.AddWithValue("$created", document.CreatedAt.ToString("O", CultureInfo.InvariantCulture));
+        await ensureProject.ExecuteNonQueryAsync(cancellationToken);
+
         using var check = connection.CreateCommand();
         check.Transaction = transaction;
         check.CommandText = """
@@ -129,6 +141,55 @@ public sealed class RagStore
                 DateTimeOffset.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
         }
         return documents;
+    }
+
+    public async Task<bool> CreateProjectAsync(string projectId, CancellationToken cancellationToken = default)
+    {
+        projectId = RagLimits.Required(projectId, nameof(projectId));
+        await using var connection = await OpenAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR IGNORE INTO RagProjects (ProjectId, CreatedAt) VALUES ($project, $created);";
+        command.Parameters.AddWithValue("$project", projectId);
+        command.Parameters.AddWithValue("$created", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+    }
+
+    public async Task<IReadOnlyList<RagProject>> ListProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT p.ProjectId, COUNT(d.Id), COALESCE(MAX(d.CreatedAt), p.CreatedAt)
+            FROM RagProjects p LEFT JOIN RagDocuments d ON d.ProjectId = p.ProjectId
+            GROUP BY p.ProjectId ORDER BY p.ProjectId COLLATE NOCASE, p.ProjectId;
+            """;
+        var projects = new List<RagProject>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            projects.Add(new RagProject(reader.GetString(0), reader.GetInt32(1),
+                DateTimeOffset.Parse(reader.GetString(2), CultureInfo.InvariantCulture)));
+        }
+        return projects;
+    }
+
+    public async Task<bool> DeleteProjectAsync(string projectId, CancellationToken cancellationToken = default)
+    {
+        projectId = RagLimits.Required(projectId, nameof(projectId));
+        await using var connection = await OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction();
+        using var documents = connection.CreateCommand();
+        documents.Transaction = transaction;
+        documents.CommandText = "DELETE FROM RagDocuments WHERE ProjectId = $project;";
+        documents.Parameters.AddWithValue("$project", projectId);
+        await documents.ExecuteNonQueryAsync(cancellationToken);
+        using var project = connection.CreateCommand();
+        project.Transaction = transaction;
+        project.CommandText = "DELETE FROM RagProjects WHERE ProjectId = $project;";
+        project.Parameters.AddWithValue("$project", projectId);
+        var deleted = await project.ExecuteNonQueryAsync(cancellationToken) > 0;
+        await transaction.CommitAsync(cancellationToken);
+        return deleted;
     }
 
     public async Task<bool> DeleteAsync(string projectId, string documentId,

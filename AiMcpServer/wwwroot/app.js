@@ -2,6 +2,7 @@ const projectInput = document.querySelector('#project');
 const status = document.querySelector('#status');
 const documents = document.querySelector('#documents');
 const results = document.querySelector('#results');
+let isBusy = false;
 
 function project() {
   const value = projectInput.value.trim();
@@ -9,34 +10,12 @@ function project() {
   return value;
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`/api/rag${path}`, {
-    ...options,
-    headers: { 'X-Rag-Request': '1', ...options.headers }
-  });
-  if (!response.ok) {
-    let error = `Request failed (HTTP ${response.status}).`;
-    try {
-      const payload = await response.json();
-      error = payload.error || payload.detail || payload.title || error;
-    } catch { /* The server may reject a request before producing JSON. */ }
-    throw new Error(error);
-  }
-  return response.status === 204 ? null : response.json();
-}
-
-function jsonRequest(path, body) {
-  return request(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-}
-
 async function run(action) {
+  if (isBusy) return;
+  isBusy = true;
   const controls = [...document.querySelectorAll('button, input, textarea')];
   controls.forEach(control => { control.disabled = true; });
-  status.textContent = 'Working… Document indexing may take several minutes.';
+  status.textContent = 'Working…';
   status.classList.remove('error');
   try {
     status.textContent = await action();
@@ -44,7 +23,8 @@ async function run(action) {
     status.textContent = error.message || 'The request could not be completed.';
     status.classList.add('error');
   } finally {
-    controls.forEach(control => { control.disabled = false; });
+    document.querySelectorAll('button, input, textarea').forEach(control => { control.disabled = false; });
+    isBusy = false;
   }
 }
 
@@ -67,6 +47,21 @@ function sourceNode(source) {
     }
   } catch { /* Uploaded filenames are displayed as text, never as local links. */ }
   return element('span', source);
+}
+
+async function selectProject(projectId) {
+  projectInput.value = projectId;
+  results.replaceChildren();
+  documents.replaceChildren(element('p', 'Loading documents for this project…'));
+  updateProjectSelection();
+  return loadDocuments(projectId);
+}
+
+function updateProjectSelection() {
+  const selected = projectInput.value.trim();
+  document.querySelector('#upload-destination').textContent = selected
+    ? `Adding documents to: ${selected}`
+    : 'Select a project from the table before uploading documents.';
 }
 
 async function loadDocuments(projectId) {
@@ -94,9 +89,16 @@ async function loadDocuments(projectId) {
   return entries.length;
 }
 
-projectInput.addEventListener('input', () => {
-  documents.replaceChildren(element('p', 'Refresh to load this project.'));
-  results.replaceChildren();
+run(async () => {
+  const projectId = new URLSearchParams(window.location.search).get('project');
+  if (!projectId) {
+    window.location.replace('/projects.html');
+    return 'Opening Projects...';
+  }
+  const entries = await request('/projects');
+  if (!entries.some(entry => entry.projectId === projectId)) throw new Error('The requested project does not exist. Open the Projects page to select another.');
+  await selectProject(projectId);
+  return `Project ${projectId} selected. Add or remove documents below.`;
 });
 
 document.querySelector('#refresh').addEventListener('click', () => run(async () => {
@@ -108,14 +110,17 @@ document.querySelector('#upload-form').addEventListener('submit', event => {
   event.preventDefault();
   run(async () => {
     const projectId = project();
-    const file = document.querySelector('#file').files[0];
-    if (!file || file.size === 0 || file.size > 10 * 1024 * 1024) throw new Error('Choose a non-empty PDF/text file of at most 10 MiB.');
+    const files = [...document.querySelector('#file').files];
+    if (!files.length || files.length > 10) throw new Error('Choose between 1 and 10 files.');
+    if (files.some(file => file.size === 0 || file.size > 10 * 1024 * 1024)) {
+      throw new Error('Each file must be non-empty and at most 10 MiB.');
+    }
     const form = new FormData();
     form.append('projectId', projectId);
-    form.append('file', file);
+    files.forEach(file => form.append('file', file));
     const saved = await request('/upload', { method: 'POST', body: form });
     await loadDocuments(projectId);
-    return `Indexed ${saved.title}: ${saved.chunkCount} chunks.`;
+    return `Indexed ${saved.length} document(s): ${saved.map(document => `${document.title} (${document.chunkCount} chunks)`).join('; ')}.`;
   });
 });
 

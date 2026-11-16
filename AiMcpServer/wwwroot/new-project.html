@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New project - MCP Server</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/api.js" defer></script>
+  <script src="/new-project.js" defer></script>
+</head>
+<body>
+  <main class="entry-page">
+    <nav class="page-navigation" aria-label="Project navigation">
+      <a href="/projects.html">Projects</a>
+    </nav>
+    <h1>New project</h1>
+    <p class="notice">Local development only. No authentication. Do not upload secrets.</p>
+    <section aria-labelledby="new-project-heading">
+      <h2 id="new-project-heading">Create a project</h2>
+      <form id="new-project-form">
+        <label for="new-project-id">Project name (case-sensitive)</label>
+        <input id="new-project-id" maxlength="200" placeholder="my-project" autocomplete="off" required>
+        <p>After saving, Project knowledge opens so you can add documents.</p>
+        <button type="submit">Create project</button>
+      </form>
+    </section>
+    <p id="status" role="status" aria-live="polite">Enter a name for your new project.</p>
+    <p>Already have a project? <a href="/projects.html">Select it from the projects table</a> to add or remove documents.</p>
+  </main>
+</body>
+</html>
